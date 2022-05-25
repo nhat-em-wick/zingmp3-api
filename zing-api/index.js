@@ -2,7 +2,7 @@ require('dotenv').config()
 const axios = require("axios");
 const crypto = require("crypto-browserify");
 
-const VERSION = "1.5.4";
+const VERSION = "1.6.27";
 const URL = "https://zingmp3.vn";
 const SECRET_KEY = process.env.SECRET_KEY;
 const API_KEY = process.env.API_KEY;
@@ -31,7 +31,7 @@ const hashParam = (path, id) => {
   }
 };
 
-const hashParamHome = (path, page) => {
+const hashParamHome = (path,  page) => {
   return getHmac512(
     path + getHash256(`ctime=${CTIME}page=${page}version=${VERSION}`),
     SECRET_KEY
@@ -55,6 +55,28 @@ const hashParamMV = (
       path +
         getHash256(
           `count=${count}ctime=${CTIME}id=${id}page=${page}type=${type}version=${VERSION}`
+        ),
+      SECRET_KEY
+    );
+  }
+};
+
+const hashParamSearch = (
+  path,
+  type,
+  page,
+  count
+) => {
+  if (count === undefined && page === undefined) {
+    return getHmac512(
+      path + getHash256(`ctime=${CTIME}type=${type}version=${VERSION}`),
+      SECRET_KEY
+    );
+  } else {
+    return getHmac512(
+      path +
+        getHash256(
+          `count=${count}ctime=${CTIME}page=${page}type=${type}version=${VERSION}`
         ),
       SECRET_KEY
     );
@@ -112,10 +134,10 @@ const ZingMp3 = {
     });
   },
   
-  getHome : async (page = 1) => {
+  getHome : async (page = 1, count = 30) => {
     return await requestZingMp3("/api/v2/page/get/home", {
       page: page,
-      segmentId: "-1",
+     
       sig: hashParamHome("/api/v2/page/get/home", page),
     });
   },
@@ -159,10 +181,19 @@ const ZingMp3 = {
     });
   },
   
-  search : async (name) => {
+  searchAll : async (name) => {
     return await requestZingMp3("/api/v2/search/multi", {
       q: name,
       sig: hashParam("/api/v2/search/multi"),
+    });
+  },
+  searchComponent: async (name, type, page, count) => {
+    return await requestZingMp3("/api/v2/search", {
+      q: name,
+      type: type,
+      page: page,
+      count: count,
+      sig: hashParamSearch("/api/v2/search", type, page, count),
     });
   },
   
@@ -193,8 +224,14 @@ const ZingMp3 = {
   },
   downloadSong: async (songId) => {
     return await requestZingMp3("/api/v2/download/post/song", {
-      id: videoId,
-      sig: hashParam("/api/v2/page/get/video", videoId),
+      id: songId,
+      sig: hashParam("/api/v2/page/get/video", songId),
+    });
+  },
+  getSectionBottom: async (id) => {
+    return await requestZingMp3("/api/v2/playlist/get/section-bottom", {
+      id: id,
+      sig: hashParam("/api/v2/playlist/get/section-bottom", id),
     });
   },
 }
